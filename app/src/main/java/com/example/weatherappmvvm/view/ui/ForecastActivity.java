@@ -27,17 +27,16 @@ public class ForecastActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forecast);
+        mAdapter = new WeatherForecastRecyclerViewAdapter();
 
         ButterKnife.bind(this);
-
+        bindRecyclerView();
         Intent intent = getIntent();
         String city = intent.getStringExtra("cityName");
 
         weatherForecastViewModel = ViewModelProviders.of(this).get(WeatherForecastViewModel.class);
         weatherForecastViewModel.getForecasts(city).observe(this, weatherForecastModel -> {
-            mAdapter = new WeatherForecastRecyclerViewAdapter();
             mAdapter.addWeatherForecastModel(weatherForecastModel);
-            bindRecyclerView();
         });
     }
 

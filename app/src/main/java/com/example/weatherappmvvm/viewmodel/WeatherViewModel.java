@@ -10,37 +10,42 @@ import com.example.weatherappmvvm.model.WeatherModel;
 import com.example.weatherappmvvm.retrofit.RetrofitClient;
 import com.example.weatherappmvvm.retrofit.WeatherService;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class WeatherViewModel extends ViewModel {
 
     private MutableLiveData<WeatherModel> weathers;
     private WeatherService weatherService = RetrofitClient.getRetrofitInstance().create(WeatherService.class);
+    CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     private void loadWeathers() {
-        Call<WeatherModel> call =
-                weatherService.getWeather("524901,703448,2643743,658226,3183875,2673730,5128581", "metric", "26fbb994d78d012c388d5ecb2f45f701");
+        Disposable disposable = weatherService.getWeather("524901,703448,2643743,658226,3183875,2673730,5128581", "metric", "26fbb994d78d012c388d5ecb2f45f701")
+                .subscribeOn(Schedulers.io())
+                .map(weatherModel -> weatherModel)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(weatherModel -> weathers.setValue(weatherModel), this::handleError);
+        compositeDisposable.add(disposable);
+    }
 
-        call.enqueue(new Callback<WeatherModel>() {
-            @Override
-            public void onResponse(Call<WeatherModel> call, Response<WeatherModel> response) {
-               weathers.setValue(response.body());
-            }
-
-            @Override
-            public void onFailure(Call<WeatherModel> call, Throwable t) {
-                Log.v("Error", t.getMessage());
-            }
-        });
+    private void handleError(Throwable throwable) {
+        Log.v("Error", throwable.getMessage());
     }
 
     public LiveData<WeatherModel> getWeathers() {
-        if (weathers == null){
+        if (weathers == null) {
             weathers = new MutableLiveData<>();
             loadWeathers();
         }
         return weathers;
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        compositeDisposable.dispose();
     }
 }
